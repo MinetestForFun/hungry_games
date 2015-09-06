@@ -83,16 +83,6 @@ end
 
 minetest.register_entity("throwing:arrow_fire_entity", THROWING_ARROW_ENTITY)
 
-minetest.register_craft({
-	output = 'throwing:arrow_fire 4',
-	recipe = {
-		{'default:stick', 'default:stick', 'bucket:bucket_lava'},
-	},
-	replacements = {
-		{"bucket:bucket_lava", "bucket:bucket_empty"}
-	}
-})
-
 minetest.register_node("throwing:light", {
 	drawtype = "airlike",
 	paramtype = "light",

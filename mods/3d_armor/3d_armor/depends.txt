@@ -1,5 +1,4 @@
 default
-playermodel
 ranks_skins?
 inventory_plus?
 unified_inventory?
