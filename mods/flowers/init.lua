@@ -68,6 +68,56 @@ for _,item in pairs(flowers.datas) do
 	add_simple_flower(unpack(item))
 end
 
+
+--[[ Flower spread
+
+minetest.register_abm({
+	nodenames = {"group:flora"},
+	neighbors = {"default:dirt_with_grass", "default:desert_sand"},
+	interval = 50,
+	chance = 25,
+	action = function(pos, node)
+		pos.y = pos.y - 1
+		local under = minetest.get_node(pos)
+		pos.y = pos.y + 1
+		if under.name == "default:desert_sand" then
+			minetest.set_node(pos, {name = "default:dry_shrub"})
+		elseif under.name ~= "default:dirt_with_grass" then
+			return
+		end
+
+		local light = minetest.get_node_light(pos)
+		if not light or light < 13 then
+			return
+		end
+
+		local pos0 = {x = pos.x - 4, y = pos.y - 4, z = pos.z - 4}
+		local pos1 = {x = pos.x + 4, y = pos.y + 4, z = pos.z + 4}
+		if #minetest.find_nodes_in_area(pos0, pos1, "group:flora_block") > 0 then
+			return
+		end
+
+		local flowers = minetest.find_nodes_in_area(pos0, pos1, "group:flora")
+		if #flowers > 3 then
+			return
+		end
+
+		local seedling = minetest.find_nodes_in_area(pos0, pos1, "default:dirt_with_grass")
+		if #seedling > 0 then
+			seedling = seedling[math.random(#seedling)]
+			seedling.y = seedling.y + 1
+			light = minetest.get_node_light(seedling)
+			if not light or light < 13 then
+				return
+			end
+			if minetest.get_node(seedling).name == "air" then
+				minetest.set_node(seedling, {name = node.name})
+			end
+		end
+	end,
+})]]
+
+
 --
 -- Mushrooms
 --
@@ -161,3 +211,27 @@ for _, m in pairs(mushrooms_datas) do
 		groups = {dig_immediate = 3, attached_node = 1},
 	})
 end
+
+
+--[[ Register growing ABM
+
+minetest.register_abm({
+	nodenames = {"flowers:mushroom_spores_brown", "flowers:mushroom_spores_red"},
+	interval = 11,
+	chance = 50,
+	action = function(pos, node)
+		local node_under = minetest.get_node_or_nil({x = pos.x,
+			y = pos.y - 1, z = pos.z})
+		if not node_under then
+			return
+		end
+		if minetest.get_item_group(node_under.name, "soil") ~= 0 and
+				minetest.get_node_light(pos, nil) <= 13 then
+			if node.name == "flowers:mushroom_spores_brown" then
+				minetest.set_node(pos, {name = "flowers:mushroom_fertile_brown"})
+			elseif node.name == "flowers:mushroom_spores_red" then
+				minetest.set_node(pos, {name = "flowers:mushroom_fertile_red"})
+			end
+		end
+	end
+})]]
