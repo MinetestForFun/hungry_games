@@ -195,7 +195,8 @@ function stairs.register_slab(subname, recipeitem, groups, images, description, 
 		minetest.register_node(":stairs:slab_" .. subname .. "upside_down", {
 			replace_name = "stairs:slab_".. subname,
 			groups = {slabs_replace = 1},
-	})
+		})
+	end
 end
 
 
@@ -309,7 +310,7 @@ stairs.register_stair_and_slab("sandstone", "default:sandstone",
 		"Sandstone Stair",
 		"Sandstone Slab",
 		default.node_sound_stone_defaults())
-		
+
 stairs.register_stair_and_slab("sandstonebrick", "default:sandstonebrick",
 		{crumbly = 2, cracky = 2},
 		{"default_sandstone_brick.png"},
