@@ -15,6 +15,20 @@ minetest.register_craft({
 })
 
 minetest.register_craft({
+	output = 'default:pine_wood 4',
+	recipe = {
+		{'default:pine_tree'},
+	}
+})
+
+minetest.register_craft({
+	output = 'default:acacia_wood 4',
+	recipe = {
+		{'default:acacia_tree'},
+	}
+})
+
+minetest.register_craft({
 	output = 'default:stick 4',
 	recipe = {
 		{'group:wood'},
