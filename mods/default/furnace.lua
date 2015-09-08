@@ -3,7 +3,7 @@
 -- Formspecs
 --
 
-local function active_formspec(fuel_percent, item_percent)
+--[[local function active_formspec(fuel_percent, item_percent)
 	local formspec = 
 		"size[8,8.5]"..
 		default.gui_bg..
@@ -24,7 +24,7 @@ local function active_formspec(fuel_percent, item_percent)
 		"listring[current_player;main]"..
 		default.get_hotbar_bg(0, 4.25)
 	return formspec
-end
+end]]
 
 local inactive_formspec =
 	"size[8,8.5]"..
@@ -114,7 +114,7 @@ minetest.register_node("default:furnace", {
 	allow_metadata_inventory_take = allow_metadata_inventory_take,
 })
 
-minetest.register_node("default:furnace_active", {
+--[[minetest.register_node("default:furnace_active", {
 	description = "Furnace",
 	tiles = {
 		"default_furnace_top.png", "default_furnace_bottom.png",
@@ -288,4 +288,4 @@ minetest.register_abm({
 		meta:set_string("formspec", formspec)
 		meta:set_string("infotext", infotext)
 	end,
-})
+})]]

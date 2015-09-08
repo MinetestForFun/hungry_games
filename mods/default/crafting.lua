@@ -1,34 +1,6 @@
 -- mods/default/crafting.lua
 
 minetest.register_craft({
-	output = 'default:wood 4',
-	recipe = {
-		{'default:tree'},
-	}
-})
-
-minetest.register_craft({
-	output = 'default:junglewood 4',
-	recipe = {
-		{'default:jungletree'},
-	}
-})
-
-minetest.register_craft({
-	output = 'default:pine_wood 4',
-	recipe = {
-		{'default:pine_tree'},
-	}
-})
-
-minetest.register_craft({
-	output = 'default:acacia_wood 4',
-	recipe = {
-		{'default:acacia_tree'},
-	}
-})
-
-minetest.register_craft({
 	output = 'default:stick 4',
 	recipe = {
 		{'group:wood'},
