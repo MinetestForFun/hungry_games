@@ -419,7 +419,7 @@ minetest.register_node("default:tree", {
 	tiles = {"default_tree_top.png", "default_tree_top.png", "default_tree.png"},
 	paramtype2 = "facedir",
 	is_ground_content = false,
-	groups = {tree=1,choppy=2,oddly_breakable_by_hand=1,flammable=2},
+	groups = {tree=1,unbreakable=1,flammable=2},
 	sounds = default.node_sound_wood_defaults(),
 
 	on_place = minetest.rotate_node
@@ -516,7 +516,7 @@ minetest.register_node("default:jungletree", {
 	tiles = {"default_jungletree_top.png", "default_jungletree_top.png", "default_jungletree.png"},
 	paramtype2 = "facedir",
 	is_ground_content = false,
-	groups = {tree=1,choppy=2,oddly_breakable_by_hand=1,flammable=2},
+	groups = {tree=1,unbreakable=1,flammable=2},
 	sounds = default.node_sound_wood_defaults(),
 
 	on_place = minetest.rotate_node
@@ -580,7 +580,7 @@ minetest.register_node("default:junglesapling", {
 
 
 
-minetest.register_node("default:pine_tree", {
+--[[minetest.register_node("default:pine_tree", {
 	description = "Pine Tree",
 	tiles = {"default_pine_tree_top.png", "default_pine_tree_top.png",
 		"default_pine_tree.png"},
@@ -592,7 +592,7 @@ minetest.register_node("default:pine_tree", {
 	on_place = minetest.rotate_node
 })
 
-minetest.register_node("default:pine_wood", {
+--[[minetest.register_node("default:pine_wood", {
 	description = "Pine Wood Planks",
 	tiles = {"default_pine_wood.png"},
 	is_ground_content = false,
@@ -697,7 +697,7 @@ minetest.register_node("default:acacia_sapling", {
 	groups = {snappy = 2, dig_immediate = 3, flammable = 2,
 		attached_node = 1, sapling = 1},
 	sounds = default.node_sound_leaves_defaults(),
-})
+})]]
 
 --
 -- Ores
@@ -829,7 +829,7 @@ minetest.register_node("default:cactus", {
 	description = "Cactus",
 	tiles = {"default_cactus_top.png", "default_cactus_top.png", "default_cactus_side.png"},
 	paramtype2 = "facedir",
-	groups = {snappy=1,choppy=3,flammable=2},
+	groups = {unbreakable=1,flammable=2},
 	sounds = default.node_sound_wood_defaults(),
 	on_place = minetest.rotate_node,
 
@@ -851,7 +851,7 @@ minetest.register_node("default:papyrus", {
 		type = "fixed",
 		fixed = {-0.3, -0.5, -0.3, 0.3, 0.5, 0.3}
 	},
-	groups = {snappy=3,flammable=2},
+	groups = {unbreakable=1,flammable=2},
 	sounds = default.node_sound_leaves_defaults(),
 
 	after_dig_node = function(pos, node, metadata, digger)
@@ -871,7 +871,7 @@ minetest.register_node("default:dry_shrub", {
 	sunlight_propagates = true,
 	walkable = false,
 	buildable_to = true,
-	groups = {snappy=3,flammable=3,attached_node=1},
+	groups = {unbreakable=1,flammable=3,attached_node=1},
 	sounds = default.node_sound_leaves_defaults(),
 	selection_box = {
 		type = "fixed",
@@ -891,7 +891,7 @@ minetest.register_node("default:junglegrass", {
 	sunlight_propagates = true,
 	walkable = false,
 	buildable_to = true,
-	groups = {snappy=3,flammable=2,flora=1,attached_node=1},
+	groups = {unbreakable=1,flammable=2,flora=1,attached_node=1},
 	sounds = default.node_sound_leaves_defaults(),
 	selection_box = {
 		type = "fixed",
@@ -911,7 +911,7 @@ minetest.register_node("default:grass_1", {
 	sunlight_propagates = true,
 	walkable = false,
 	buildable_to = true,
-	groups = {snappy=3,flammable=3,flora=1,attached_node=1},
+	groups = {unbreakable=1,flammable=3,flora=1,attached_node=1},
 	sounds = default.node_sound_leaves_defaults(),
 	selection_box = {
 		type = "fixed",
@@ -939,7 +939,7 @@ for i=2,5 do
 		walkable = false,
 		buildable_to = true,
 		drop = "default:grass_1",
-		groups = {snappy=3,flammable=3,flora=1,attached_node=1,not_in_creative_inventory=1},
+		groups = {unbreakable=1,flammable=3,flora=1,attached_node=1,not_in_creative_inventory=1},
 		sounds = default.node_sound_leaves_defaults(),
 		selection_box = {
 			type = "fixed",
@@ -1330,7 +1330,7 @@ minetest.register_node("default:torch", {
 		wall_bottom = {-0.1, -0.5, -0.1, 0.1, -0.5+0.6, 0.1},
 		wall_side = {-0.5, -0.3, -0.1, -0.5+0.3, 0.3, 0.1},
 	},
-	groups = {choppy=2,dig_immediate=3,flammable=1,attached_node=1,unbreakable=1},
+	groups = {flammable=1,attached_node=1,unbreakable=1},
 	legacy_wallmounted = true,
 	sounds = default.node_sound_defaults(),
 })
@@ -1683,7 +1683,7 @@ minetest.register_node("default:rail", {
                 -- but how to specify the dimensions for curved and sideways rails?
                 fixed = {-1/2, -1/2, -1/2, 1/2, -1/2+1/16, 1/2},
 	},
-	groups = {bendy=2,dig_immediate=2,attached_node=1,connect_to_raillike=minetest.raillike_group("rail")},
+	groups = {unbreakable=1,attached_node=1,connect_to_raillike=minetest.raillike_group("rail")},
 })
 
 
@@ -1704,7 +1704,7 @@ minetest.register_node("default:meselamp", {
 	paramtype = "light",
 	sunlight_propagates = true,
 	is_ground_content = false,
-	groups = {cracky = 3, oddly_breakable_by_hand = 3},
+	groups = {unbreakable = 1},
 	sounds = default.node_sound_glass_defaults(),
 	light_source = default.LIGHT_MAX,
 })
