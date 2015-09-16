@@ -1,5 +1,4 @@
 default
-random_chests
 glass_arena
 food
 throwing

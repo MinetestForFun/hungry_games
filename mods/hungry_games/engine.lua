@@ -11,8 +11,12 @@ local registrants = {}
 local voters = {}
 local voters_hud = {}
 local currGame = {}
-local gameSequenceNumber = 0	--[[ Sequence number of current round, will be incremented each round.
-				     Used to determine whether minetest.after calls are still valid or should be discarded. ]]
+
+--[[ 
+Sequence number of current round, will be incremented each round.
+Used to determine whether minetest.after calls are still valid or should be discarded. 
+]]
+local gameSequenceNumber = 0	
 local voteSequenceNumber = 0
 
 local spots_shuffled = {}
@@ -23,14 +27,12 @@ local timer = nil
 local timer_updated = nil
 local timer_mode = nil	-- nil, "vote", "starting", "grace"
 
-local maintenance_mode = false		-- is true when server is in maintenance mode, no games can be started while in maintenance mode
+local maintenance_mode = false		
 
--- Initial setup
 minetest.setting_set("enable_damage", "false")
 survival.disable()
 
 hb.register_hudbar("votes", 0xFFFFFF, "Votes", { bar = "hungry_games_votebar.png", icon = "hungry_games_voteicon.png" }, 0, 0, false)
-
 
 local update_timer_hud = function(text)
 	local players = minetest.get_connected_players()
@@ -55,16 +57,70 @@ local unset_timer = function()
 	update_timer_hud("")
 end
 
+--[[
+Refills chests.
+
+Arguments are passed in an array. 
+
+The First argument is a game sequence number.
+
+The Second argument is a flag. If true, then all chests will be refilled and 
+this function will be called though the use of minetest.after exactly 
+hungry_games.chest_refill_interval seconds in the future with the flag
+set to true. If false, no chests will be refilled upon the function being 
+called but the function will be called through the use of minetest.after 
+hungry_games.vote_interval seconds later with the flag set to true.
+
+The second argument is used by the end_grace function. It enables it to
+start a countdown to the chest refill after the grace period has finished
+without refilling the chests immediately. This is important as refilling 
+the chests at the end of the grace period would give players access to too
+many items as the chests are already filled at the start of the game.
+]]
+local refill_chests
+refill_chests = function(args)
+	local gsn = args[1]	
+	local refill = args[2] --Flag: if true, then refill chests and start countdown to next refill, if false, just start countdown to next refill
+	if gsn ~= gameSequenceNumber or not ingame then
+		return 
+	else
+		if refill then 
+			minetest.chat_send_all("Refilling chests")
+			random_chests.refill() 
+		end
+
+		if hungry_games.chest_refill_interval == -1 then --If chest refilling is disabled, just refill once
+			return
+		else
+			unset_timer()
+			set_timer("chest_refill", hungry_games.chest_refill_interval)
+			minetest.after(hungry_games.chest_refill_interval, refill_chests, {gsn, true})
+		end
+	end	
+end
+
+
+--[[
+Ends the grace period. 
+
+Enables pvp, informs players that the grace period is over and calls refill_chests
+such that chests will be filled in hungry_games.chest_refill_interval
+seconds.
+]]
 local end_grace = function(gsn)
 	if ingame and gsn == gameSequenceNumber then
 		minetest.setting_set("enable_pvp", "true")
 		minetest.chat_send_all("Grace period over!")
 		grace = false
 		unset_timer()
+		refill_chests({gameSequenceNumber})
 		minetest.sound_play("hungry_games_grace_over")
 	end
 end
 
+--[[
+Returns the number of votes currently needed to start a game.
+]]
 local needed_votes = function()
 	local num = #minetest.get_connected_players()
 	if num <= hungry_games.vote_unanimous then
@@ -74,6 +130,9 @@ local needed_votes = function()
 	end
 end
 
+--[[
+Updates the vote hudbar. 
+]]
 local update_votebars = function()
 	local players = minetest.get_connected_players()
 	for i=1, #players do
@@ -86,7 +145,14 @@ local update_votebars = function()
 	end
 end
 
-local drop_player_items = function(playerName, clear) --If clear != nil, don't drop items, just clear inventory
+--[[
+Clears a player's inventory completely (including crafting and armor 
+inventories) and drops their items.
+
+If the clear argument is set to true, items will be removed from the player's
+inventory, but not dropped on the ground.
+]]
+local drop_player_items = function(playerName, clear)
 	if not playerName then
 		return
 	end
@@ -108,7 +174,7 @@ local drop_player_items = function(playerName, clear) --If clear != nil, don't d
 			for i,v in pairs(inventoryList) do
 				local obj = minetest.spawn_item({x=math.floor(pos.x)+math.random(), y=pos.y, z=math.floor(pos.z)+math.random()}, v)
 				if obj ~= nil then
-					obj:get_luaentity().always_collect = true
+					obj:get_luaentity().collect = true
 					local x = math.random(1, 5)
 					if math.random(1,2) == 1 then
 						x = -x
@@ -147,11 +213,15 @@ local drop_player_items = function(playerName, clear) --If clear != nil, don't d
 	return
 end
 
+--[[
+Stops the game immediately.
+]]
 local stop_game = function()
 	for _,player in ipairs(minetest.get_connected_players()) do
 		minetest.after(0.1, function()
 			local name = player:get_player_name()
 		   	local privs = minetest.get_player_privs(name)
+			player:set_nametag_attributes({color = {a=255, r=255, g=255, b=255}})
 			privs.fast = nil
 			privs.fly = nil
 			privs.interact = true
@@ -178,6 +248,10 @@ local stop_game = function()
 	update_rank_skins()
 end
 
+--[[
+Checks if the current game has been won. If so, announces the winner's 
+name and calls stop_game.
+]]
 local check_win = function()
 	if ingame then
 		local count = 0
@@ -223,6 +297,10 @@ local check_win = function()
 	end
 end
 
+
+--[[
+Returns the number of spawn points available for players to spawn in.
+]]
 local get_spots = function()
 	i = 1
 	while true do
@@ -234,6 +312,9 @@ local get_spots = function()
 	end
 end
 
+--[[
+Sets the specified player's thirst and hunger to 0 and health to 20.
+]]
 local reset_player_state = function(player)
 	local name = player:get_player_name()
 	player:set_hp(20)
@@ -253,6 +334,8 @@ minetest.register_globalstep(function(dtime)
 					update_timer_hud(string.format("Next round in max. %ds.", math.ceil(timer)))
 				elseif timer_mode == "starting" then
 					update_timer_hud(string.format("Game starts in %ds.", math.ceil(timer)))
+				elseif timer_mode == "chest_refill" then
+					update_timer_hud(string.format("%ds to chest refill", math.ceil(timer)))
 				else
 					unset_timer()
 				end
@@ -263,6 +346,14 @@ minetest.register_globalstep(function(dtime)
 	end
 end)
 
+--[[
+Starts the grace period.
+
+Enables damage and sets a timer informing players of the time remaining 
+until the end of the grace period.
+
+Called when the countdown initiated by start_game is finished. 
+]]
 local start_game_now = function(input)
 	local contestants = input[1]
 	local gsn = input[2]
@@ -274,6 +365,7 @@ local start_game_now = function(input)
 		if minetest.get_player_by_name(name) then
 			ranked.inc(name, "nb_games")
 			currGame[name] = true
+			player:set_nametag_attributes({color = {a=255, r=0, g=255, b=0}})
 			local privs = minetest.get_player_privs(name)
 			privs.fast = nil
 			privs.fly = nil
@@ -295,7 +387,7 @@ local start_game_now = function(input)
 		end
 	end
 	ingame = true
-	local startstr = "The Hungry Games has begun!"
+	local startstr = "The Hungry Games have begun!"
 	minetest.chat_send_all(startstr)
 	irc:say(startstr)
 	if hungry_games.grace_period > 0 then
@@ -325,6 +417,13 @@ local start_game_now = function(input)
 	return true
 end
 
+--[[
+Starts the game.
+
+Spawns all players in random spawnpoints, starts a countdown that lasts
+hungry_games.countdown seconds during which players cannot leave their
+spawnpoints and calls start_game_now after the countdown has finished.
+]]
 local start_game = function()
 	if starting_game or ingame then
 		return
@@ -345,8 +444,10 @@ local start_game = function()
 			end
 		end, gameSequenceNumber)
 	end
-	minetest.log("action", "filling chests...")
+	
+	random_chests.clear()
 	random_chests.refill()
+	
 	--Find out how many spots there are to spawn
 	local nspots = get_spots()
 	local diff =  nspots-table.getn(registrants)
@@ -437,6 +538,13 @@ local start_game = function()
 	end
 end
 
+--[[
+Starts the game if the number of votes is sufficent to start a game.
+
+Gets the return value of needed_votes and compares it to the current amount
+of votes cast. If the return value of needed_votes > current amount of 
+votes, calls start_game.
+]]
 local check_votes = function()
 	if not ingame then
 		local players = minetest.get_connected_players()
@@ -449,7 +557,12 @@ local check_votes = function()
 	return false
 end
 
---Check if theres only one player left and stop hungry games.
+--[[
+Handles everything when a player's dies.
+
+Drops the player's items, if a game is currently underway, spawns player
+in the lobby and calls check_win.
+]]
 minetest.register_on_dieplayer(function(player)
 	local playerName = player:get_player_name()
 	local pos = player:getpos()
@@ -461,6 +574,7 @@ minetest.register_on_dieplayer(function(player)
 	count = count - 1
 
 	if ingame and currGame[playerName] and count ~= 1 then
+		player:set_nametag_attributes({color = {a=255, r=255, g=0, b=0}})
 		local deathstr = playerName .. " has died! Players left: " .. tostring(count)
 		minetest.chat_send_all(deathstr)
 		irc:say(deathstr)
@@ -483,16 +597,18 @@ minetest.register_on_dieplayer(function(player)
    		if privs.interact and (hungry_games.death_mode == "spectate") then
 		   	privs.fast = true
 			privs.fly = true
- 			privs.interact = nil
+			privs.interact = nil
 			privs.ingame = nil
+			minetest.set_player_privs(playerName, privs)
+			minetest.chat_send_player(playerName, "You are now spectating")
 		end
    	end]] -- Spectate disabled
 end)
 
 minetest.register_on_respawnplayer(function(player)
+	player:set_hp(20)
 	local name = player:get_player_name()
 	drop_player_items(name, true)
-	player:set_hp(20)
    	local privs = minetest.get_player_privs(name)
    	if (privs.interact or privs.fly) and (hungry_games.death_mode == "spectate") then
 		spawning.spawn(player, "spawn")
@@ -512,7 +628,16 @@ minetest.register_on_joinplayer(function(player)
 	privs.interact = true
 	privs.ingame = nil
 	minetest.set_player_privs(name, privs)
-	minetest.chat_send_player(name, "You are now spectating")
+
+	if ingame then
+		player:set_nametag_attributes({color = {a=255, r=255, g=0, b=0}})
+		minetest.after(1, survival.player_hide_hudbar, name)
+	end
+
+	if hungry_games.death_mode == "spectate" then
+		minetest.chat_send_player(name, "You are now spectating")
+	end
+
 	spawning.spawn(player, "lobby")
 	reset_player_state(player)
 	hb.init_hudbar(player, "votes", votes, needed_votes(), (maintenance_mode or ingame or starting_game or #minetest.get_connected_players() < 2))
@@ -527,9 +652,6 @@ minetest.register_on_joinplayer(function(player)
 		alignment = {x=0,y=0},
 		size = {x=100,y=24},
 	})
-	if ingame then
-		minetest.after(1, survival.player_hide_hudbar, name)
-	end
 	inventory_plus.register_button(player,"hgvote","HG Vote")
 	inventory_plus.register_button(player,"hgranks","HG Ranks")
 end)
@@ -722,61 +844,80 @@ minetest.register_chatcommand("hg", {
 	end,
 })
 
-
-local vote = function(name)
-	if maintenance_mode then
-		minetest.chat_send_player(name, "This server is currently in maintenance mode, no games can be started at the moment. Please come back later when the server maintenance is over.")
-		return
-	end
-	local players = minetest.get_connected_players()
-	local num = #players
-	if num < 2 then
-		minetest.chat_send_player(name, "At least 2 players are needed to start a new round.")
-		return
-	end
-	if get_spots() < 2 then
-		minetest.chat_send_player(name, "Spawn positions haven't been set yet. The game can not be started at the moment.")
-		return
-	end
-	if not ingame and not starting_game then
-		if voters[name] ~= nil then
-			minetest.chat_send_player(name, "You already have voted.")
+minetest.register_chatcommand("vote", {
+	description = "Vote to start the Hungry Games.",
+	privs = {vote=true},
+	func = function(name, param)
+		if maintenance_mode then
+			minetest.chat_send_player(name, "This server is currently in maintenance mode, no games can be started at the moment. Please come back later when the server maintenance is over.")
 			return
 		end
-		voters[name] = true
-		votes = votes + 1
-		update_votebars()
-		minetest.chat_send_all(name.. " has voted to begin! Votes so far: "..votes.."; Votes needed: "..needed_votes())
-
-		local cv = check_votes()
-		if votes > 1 and force_init_warning == false and cv == false and hungry_games.vote_countdown ~= nil then
-			minetest.chat_send_all("The match will automatically be initiated in " .. math.floor(hungry_games.vote_countdown/60) .. " minutes " .. math.fmod(hungry_games.vote_countdown, 60) .. " seconds.")
-			force_init_warning = true
-			set_timer("vote", hungry_games.vote_countdown)
-			voteSequenceNumber = voteSequenceNumber + 1
-			minetest.after(hungry_games.vote_countdown, function (gsn, vsn)
-				if not (starting_game or ingame and gsn == gameSequenceNumber) and timer_mode == "vote" and voteSequenceNumber == vsn then
-					start_game()
-				end
-			end, gameSequenceNumber, voteSequenceNumber)
+		local players = minetest.get_connected_players()
+		local num = #players
+		if num < 2 then
+			minetest.chat_send_player(name, "At least 2 players are needed to start a new round.")
+			return
 		end
-	else
-		minetest.chat_send_player(name, "Already ingame!")
-		return
-	end
-end
-local register = function(name)
-	if registrants[name] ~= nil then
-		minetest.chat_send_player(name, "You have already registered!")
-		return
-	end
-	if table.getn(registrants) < get_spots() then
-		registrants[name] = true
-		minetest.chat_send_player(name, "You have registered!")
-	else
-		minetest.chat_send_player(name, "Sorry! There are no spots left for you to spawn.")
-	end
-end
+		if get_spots() < 2 then
+			minetest.chat_send_player(name, "Spawn positions haven't been set yet. The game can not be started at the moment.")
+			return
+		end
+		if not ingame and not starting_game then
+			if voters[name] ~= nil then
+				minetest.chat_send_player(name, "You already have voted.")
+				return
+			end
+			voters[name] = true
+			votes = votes + 1
+			update_votebars()
+			minetest.chat_send_all(name.. " has voted to begin! Votes so far: "..votes.."; Votes needed: "..needed_votes())
+
+			local cv = check_votes()
+			if votes > 1 and force_init_warning == false and cv == false and hungry_games.vote_countdown ~= nil then
+				minetest.chat_send_all("The match will automatically be initiated in " .. math.floor(hungry_games.vote_countdown/60) .. " minutes " .. math.fmod(hungry_games.vote_countdown, 60) .. " seconds.")
+				force_init_warning = true
+				set_timer("vote", hungry_games.vote_countdown)
+				voteSequenceNumber = voteSequenceNumber + 1
+				minetest.after(hungry_games.vote_countdown, function (gsn, vsn)
+					if not (starting_game or ingame and gsn == gameSequenceNumber) and timer_mode == "vote" and voteSequenceNumber == vsn then
+						start_game()
+					end
+				end, gameSequenceNumber, voteSequenceNumber)
+			end
+		else
+			minetest.chat_send_player(name, "Already ingame!")
+			return
+		end
+	end,
+})
+
+minetest.register_chatcommand("register", {
+	description = "Register to take part in the Hungry Games",
+	privs = {register=true},
+	func = function(name, param)
+		--Catch param.
+		local parms = {}
+		repeat
+			v, p = param:match("^(%S*) (.*)")
+			if p then
+				param = p
+			end
+			if v then
+				table.insert(parms,v)
+			else
+				v = param:match("^(%S*)")
+				table.insert(parms,v)
+				break
+			end
+		until false
+		if table.getn(registrants) < get_spots() then
+			registrants[name] = true
+			minetest.chat_send_player(name, "You have registered!")
+		else
+			minetest.chat_send_player(name, "Sorry! There are no spots left for you to spawn.")
+		end
+	end,
+})
 
 -- get vote formspec
 local get_player_vote_formspec = function(name)
@@ -850,27 +991,6 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		return
 	end
 end)
-
-
-minetest.register_chatcommand("vote", {
-	description = "Vote to start the Hungry Games.",
-	privs = {vote=true},
-	func = function(name, param)
-		if minetest.get_player_by_name(name) then
-			vote(name)
-		else
-			return false, "You need to be ingame to vote"
-		end
-	end,
-})
-
-minetest.register_chatcommand("register", {
-	description = "Register to take part in the Hungry Games",
-	privs = {register=true},
-	func = function(name, param)
-		register(name)
-	end,
-})
 
 minetest.register_chatcommand("build", {
 	description = "Give yourself interact",
