@@ -14,24 +14,6 @@ end
 
 local timer = 0;
 
-minetest.register_alias("vessels:drinking_glass", "survival_thirst:drinking_glass")
-
-minetest.register_node("survival_thirst:drinking_glass", {
-	description = "Drinking Glass (empty)",
-	drawtype = "plantlike",
-	tiles = {"survival_thirst_drinking_glass.png"},
-	inventory_image = "survival_thirst_drinking_glass_inv.png",
-	wield_image = "survival_thirst_drinking_glass.png",
-	paramtype = "light",
-	walkable = false,
-	selection_box = {
-		type = "fixed",
-		fixed = {-0.25, -0.5, -0.25, 0.25, 0.4, 0.25}
-	},
-	groups = {vessel=1,dig_immediate=3,attached_node=1},
-	sounds = default.node_sound_glass_defaults(),
-})
-
 minetest.register_craftitem("survival_thirst:water_glass", {
     description = S("Glass of Water");
     inventory_image = "survival_thirst_water_glass.png";
@@ -47,7 +29,7 @@ minetest.register_craftitem("survival_thirst:water_glass", {
             gain = 1.0;
         });
         local inv = user:get_inventory();
-        local stack = ItemStack("survival_thirst:drinking_glass");
+        local stack = ItemStack("vessels:drinking_glass");
         if (inv:room_for_item("main", stack)) then
             inv:add_item("main", stack);
         end
@@ -63,13 +45,13 @@ local alt_water_sources = {
 	["default:water_flowing"] = true;
 };
 
-minetest.register_craftitem("survival_thirst:drinking_glass", {
+minetest.register_craftitem(":vessels:drinking_glass", {
 	--Or use minetest.registered_items[vessels:drinking_glass] for all parametre.
 	description = S("Drinking Glass (empty)"),
 	drawtype = "plantlike",
-	tiles = {"survival_thirst_drinking_glass.png"},
-	inventory_image = "survival_thirst_drinking_glass_inv.png",
-	wield_image = "survival_thirst_drinking_glass.png",
+	tiles = {"vessels_drinking_glass.png"},
+	inventory_image = "vessels_drinking_glass_inv.png",
+	wield_image = "vessels_drinking_glass.png",
 	paramtype = "light",
 	walkable = false,
 	selection_box = {
@@ -98,6 +80,19 @@ minetest.register_craftitem("survival_thirst:drinking_glass", {
 		end
 	end,
 })
+
+minetest.register_craft({
+    output = "survival_thirst:water_glass";
+    type = "shapeless";
+    recipe = {
+        "vessels:drinking_glass",
+        "bucket:bucket_water",
+    };
+    replacements = {
+        { "bucket:bucket_water", "bucket:bucket_empty" },
+    };
+});
+
 -- Known drink items (more suggestions are welcome)
 local known_drinks = {
 
@@ -110,24 +105,23 @@ local known_drinks = {
 };
 
 local function override_on_use ( def )
-	local on_use = def.on_use;
-	def.on_use = function ( itemstack, user, pointed_thing )
-	        local state = survival.get_player_state(user:get_player_name(), "thirst");
-	        state.count = 0;
-	        state.thirsty = false;
-	        minetest.sound_play({ name="survival_thirst_drink" }, {
-	            pos = user:getpos();
-	            max_hear_distance = 16;
-	            gain = 1.0;
-	        });
-	        local inv = user:get_inventory();
-	        local stack = ItemStack("survival_thirst:drinking_glass");
-	        if (inv:room_for_item("main", stack)) then
-	            inv:add_item("main", stack);
-	        end
-	        itemstack:take_item(1);
-	        return itemstack -- May cause problems with callbacks (Mg)
-	end
+    local on_use = def.on_use;
+    def.on_use = function ( itemstack, user, pointed_thing )
+        local state = survival.get_player_state(user:get_player_name(), "thirst");
+        state.count = 0;
+	state.thirsty = false;
+        minetest.sound_play({ name="survival_thirst_drink" }, {
+            pos = user:getpos();
+            max_hear_distance = 16;
+            gain = 1.0;
+        });
+        if (on_use) then
+            return on_use(itemstack, user, pointed_thing);
+        else
+            itemstack:take_item(1);
+            return itemstack;
+        end
+    end
 end
 
 -- Try to override the on_use callback of as many food items as possible.
