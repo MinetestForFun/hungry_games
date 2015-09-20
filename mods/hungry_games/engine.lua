@@ -174,7 +174,7 @@ local drop_player_items = function(playerName, clear)
 			for i,v in pairs(inventoryList) do
 				local obj = minetest.spawn_item({x=math.floor(pos.x)+math.random(), y=pos.y, z=math.floor(pos.z)+math.random()}, v)
 				if obj ~= nil then
-					obj:get_luaentity().collect = true
+					obj:get_luaentity().always_collect = true
 					local x = math.random(1, 5)
 					if math.random(1,2) == 1 then
 						x = -x
@@ -606,9 +606,9 @@ minetest.register_on_dieplayer(function(player)
 end)
 
 minetest.register_on_respawnplayer(function(player)
-	player:set_hp(20)
 	local name = player:get_player_name()
 	drop_player_items(name, true)
+	player:set_hp(20)
    	local privs = minetest.get_player_privs(name)
    	if (privs.interact or privs.fly) and (hungry_games.death_mode == "spectate") then
 		spawning.spawn(player, "spawn")
