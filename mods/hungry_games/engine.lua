@@ -890,7 +890,13 @@ end
 minetest.register_chatcommand("vote", {
 	description = "Vote to start the Hungry Games.",
 	privs = {vote=true},
-	func = vote,
+	func = function(name, param)
+		if minetest.get_player_by_name(name) then
+			vote(name)
+		else
+			return false, "You need to be ingame to vote"
+		end
+	end
 })
 
 function register(name, param)
@@ -920,7 +926,13 @@ end
 minetest.register_chatcommand("register", {
 	description = "Register to take part in the Hungry Games",
 	privs = {register=true},
-	func = register,
+	func = function(name, param)
+		if minetest.get_player_by_name(name) then
+			register(name)
+		else
+			return false, "You need to be ingame to register"
+		end
+	end
 })
 
 -- get vote formspec
